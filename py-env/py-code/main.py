@@ -1,17 +1,27 @@
 #!/../bin/python3.9
 
 # Python Imports
+import os
+import time
 import cv2
-import matplotlib.pyplot as plt
+import sys
 import dlib
+import numpy as np
 from imutils import face_utils
+import pathlib
+
+# Full Path of File
+__CURRENT_FILE_PATH__ = pathlib.Path(__file__).parent.resolve()
 
 # Intro Message
 __INTRO_TITLE__ = "Face Detection --- researched and implemented by Joseph Pildush"
 __INTRO_MSG__ = "The options below will run different face detection algorithms/techniques. The purpose of this program is " +\
                 "to demonstrate the different accuracies and efficiencies of using the below Facial Detection algorithms/techniques " + \
                 "on an Image, or during a Live camera feed."
-
+__CV_USAGE__ = "Images/Live Feed will open-up in different windows. Please use the 'Q' button on the keyboard " +\
+                "to close the image/camera. If on close of live feed or at the conclude of the images, the last image may " +\
+                "not close. If this is the case, return to this GUI and continue use. Once the program " +\
+                "has fully closed, the remaining OpenCV windows will close as well."
 # Menu Constants
 __FILLER__ = "FILL"
 __HEADER_BORDER__ = "HEADER"
@@ -24,21 +34,70 @@ __OPTION_RETURN__ = '0'
 __MAX_OPT_SIZE__ = 60
 __MAX_BORDER_SIZE__ = 65
 __MAX_TITLE_SIZE__ = __MAX_BORDER_SIZE__-2
+__CLEAR_SCREEN_COUNT__ = 20
 
 # Image
-__IMAGE_PERSON_ONE__ = "./images/person1.jpg"
-__IMAGE_PERSON_TWO__ = "./images/person2.jpg"
+__DEFAULT_IMAGE_NUM__ = 4
+__IMAGE_ROOT_PATH__ = str(__CURRENT_FILE_PATH__) + "/images/"
+__IMAGE_RESULTS_PATH__ = __IMAGE_ROOT_PATH__ + "result-images/"
+__IMAGE_PERSON_PATH__ = __IMAGE_ROOT_PATH__ + "golden-image/"
+__IMAGE_PERSON_FILE__ = "person"
+__IMAGE_PERSON_FILE_TAG__ = ".jpg"
 __GREEN_BORDER__ = (0, 255, 0)
 __BORDER_THICKNESS__ = 10
 
-# Cascade Paths
-__CASCADE_CLASSIFIER_PATH__ = "../lib/python3.9/site-packages/cv2/data/haarcascade_frontalface_default.xml"
-__CASCADE_EYE_PATH__ = "../lib/python3.9/site-packages/cv2/data/haarcascade_eye.xml"
-__CASCADE_SMILE_PATH__ = "../lib/python3.9/site-packages/cv2/data/haarcascade_smile.xml"
+# Viola–Jones Algorithm
+__VIOLA_JONES_RESULTS_PATH__ = __IMAGE_RESULTS_PATH__ + "viola-jones/"
+__CASCADE_FACE_CLASSIFIER_PATH__ = "py-env/lib/python3.9/site-packages/cv2/data/haarcascade_frontalface_default.xml"
+__CASCADE_EYE_PATH__ = "py-env/lib/python3.9/site-packages/cv2/data/haarcascade_eye.xml"
+__CASCADE_SMILE_PATH__ = "py-env/lib/python3.9/site-packages/cv2/data/haarcascade_smile.xml"
+
+# Histogram of Oriented Gradient
+__HOG_RESULTS_PATH__ = __IMAGE_RESULTS_PATH__ + "histogram-oriented-gradients/"
+__GRADIENT_RESULTS_PATH__ = __IMAGE_RESULTS_PATH__ + "histogram-oriented-gradients/gradients/"
+
+# CNN using DLib
+__MODELS_ROOT_PATH__ = str(__CURRENT_FILE_PATH__) + "/models/"
+__MODELS_FACE_DLIB__ = "mmod_human_face_detector.dat"
+__MODELS_FACE_DLIB_PATH__ = __MODELS_ROOT_PATH__ + __MODELS_FACE_DLIB__
+__CNN_RESULTS_PATH__ = __IMAGE_RESULTS_PATH__ + "convolutional-neural-network/"
+
+
+class SavedImage:
+    def __init__(self, image_path="", gray=False):
+        image_type = image_path.split('.')[len(image_path) - 1]
+        file_name = image_path.split('.')[len(image_path) - 2]
+
+        if image_type == 'jpg':
+            if gray:
+                image = cv2.imread(image_path, 0)
+            else:
+                image = cv2.imread(image_path)
+
+            self.image_path = image_path
+            self.image_name = file_name
+            self.image_tag = image_type
+            self.image = image
+        else:
+            raise Exception("Unable to load image - " + image_path)
 
 
 def clear_screen():
-    print('\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n')
+    print('\n'*__CLEAR_SCREEN_COUNT__)
+
+
+def cv_wait(isLive=False):
+    if isLive:
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            return True
+    else:
+        while True:
+            if cv2.waitKey(1) & 0xFF == ord('q'):
+                break
+
+        cv2.destroyAllWindows()
+
+        return True
 
 
 def breakDownMessage(size=0, msg=""):
@@ -61,7 +120,7 @@ def breakDownMessage(size=0, msg=""):
     return message
 
 
-def fillIntro(msg="", is_title=False):
+def fillMsg(msg="", is_title=False):
     if is_title:
         if len(msg) > __MAX_TITLE_SIZE__:
             message = breakDownMessage(__MAX_TITLE_SIZE__, msg)
@@ -99,12 +158,13 @@ def fillMenu(option=0, msg=""):
         print("| " + str(option) + " - " + msg.ljust(__MAX_OPT_SIZE__) + "|")
 
 
-def getImages():
+def getImages(gray=False):
     while True:
         images = []
-        clear_screen()
+
         fillBorder(__FILLER__)
         fillBorder(__SUB_BORDER__)
+        fillBorder(__FILLER__)
         fillMenu(0, "Go Back")
         fillMenu(1, "Use Default Images for Detection")
         fillMenu(2, "Provide Path to Image for Detection")
@@ -112,23 +172,19 @@ def getImages():
         menu_option = input(__INPUT_STR__)
 
         if menu_option == __OPTION_ONE__:
-            image = cv2.imread(__IMAGE_PERSON_ONE__)
-            color_img = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+            image_files =
+            for img_num in range(1, __DEFAULT_IMAGE_NUM__+1):
+                current_image_path = __IMAGE_PERSON_PATH__ + __IMAGE_PERSON_FILE__ +\
+                                     str(img_num) + __IMAGE_PERSON_FILE_TAG__
 
-            plt.figure().suptitle("Original", fontsize=20)
-            plt.imshow(color_img)
-            plt.show()
+                current_image = SavedImage(current_image_path, gray)
 
-            images.append(color_img)
+                cv2.imshow("Original - " + __IMAGE_PERSON_FILE__ +
+                           str(img_num) + __IMAGE_PERSON_FILE_TAG__, current_image.image)
 
-            image = cv2.imread(__IMAGE_PERSON_TWO__)
-            color_img = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+                cv_wait()
 
-            plt.figure().suptitle("Original", fontsize=20)
-            plt.imshow(color_img)
-            plt.show()
-
-            images.append(color_img)
+                images.append(current_image)
 
             return images
         elif menu_option == __OPTION_TWO__:
@@ -136,14 +192,14 @@ def getImages():
             fillBorder(__FILLER__)
 
             path_to_image = input("|  Please provide the path to the image: ")
-            image = cv2.imread(path_to_image)
-            color_img = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
-            plt.figure().suptitle("Original", fontsize=20)
-            plt.imshow(color_img)
-            plt.show()
+            image = SavedImage(path_to_image, gray)
 
-            images.append(color_img)
+            cv2.imshow("Original - " + file_name + "." + image_type, image.image)
+
+            cv_wait()
+
+            images.append(image)
 
             return images
         elif menu_option == __OPTION_RETURN__:
@@ -155,15 +211,20 @@ def getImages():
 def launchFaceImageClassifier(classifier=None):
     images = getImages()
     if images is not None:
-        for img in images:
-            faces = classifier.detectMultiScale(img, scaleFactor=1.1,
+        for img_id in range(len(images)):
+            current_image = images[img_id]
+            faces = classifier.detectMultiScale(current_image, scaleFactor=1.1,
                                                 minNeighbors=5, flags=cv2.CASCADE_SCALE_IMAGE)
             for (x, y, w, h) in faces:
-                cv2.rectangle(img, (x, y), (x + w, y + h), __GREEN_BORDER__, __BORDER_THICKNESS__)
+                cv2.rectangle(current_image, (x, y), (x + w, y + h), __GREEN_BORDER__, __BORDER_THICKNESS__)
 
-            plt.figure().suptitle("Face Detected", fontsize=20)
-            plt.imshow(img)
-            plt.show()
+            cv2.imshow("Viola and Jones Algorithm + Face Detection - " + __IMAGE_PERSON_FILE__ +
+                       str(img_id+1) + __IMAGE_PERSON_FILE_TAG__, current_image)
+
+            cv_wait()
+
+            cv2.imwrite(__VIOLA_JONES_RESULTS_PATH__ + __IMAGE_PERSON_FILE__ +
+                        str(img_id+1) + __IMAGE_PERSON_FILE_TAG__, current_image)
 
 
 def launchFaceLiveClassifier(classifier=None):
@@ -180,13 +241,11 @@ def launchFaceLiveClassifier(classifier=None):
         for (x, y, w, h) in detected_faces:
             if w > 250:
                 cv2.rectangle(frame, (x, y), (x + w, y + h), __GREEN_BORDER__, __BORDER_THICKNESS__)
-                roi_rgb_frame = rgb_frame[y:y + h, x:x + w]
-                roi_color = frame[y:y + h, x:x + w]
 
         cv2.imshow('Live Feed', frame)
 
-        if cv2.waitKey(1) & 0xFF == ord('q'):
-            break
+        if cv_wait(isLive=True):
+            break;
 
     # After the loop release the cap object
     live_camera_feed.release()
@@ -194,21 +253,28 @@ def launchFaceLiveClassifier(classifier=None):
     cv2.destroyAllWindows()
 
 
+def camera_or_image():
+    fillBorder(__FILLER__)
+    fillBorder(__SUB_BORDER__)
+    fillBorder(__FILLER__)
+    fillMsg(__CV_USAGE__)
+    fillBorder(__FILLER__)
+    fillBorder(__SUB_BORDER__)
+    fillBorder(__FILLER__)
+    fillMenu(0, "Go Back")
+    fillMenu(1, "Detect Face in Images")
+    fillMenu(2, "Detect Face in Camera")
+    fillBorder(__FILLER__)
+
+    return input(__INPUT_STR__)
+
+
 def launchViolaJonesClassifier():
     # Using the OpenCV prebuilt/taught Cascade Classifiers, store for later use
-    cascade_face = cv2.CascadeClassifier(__CASCADE_CLASSIFIER_PATH__)
-    cascade_eye = cv2.CascadeClassifier(__CASCADE_EYE_PATH__)
-    cascade_smile = cv2.CascadeClassifier(__CASCADE_SMILE_PATH__)
+    cascade_face = cv2.CascadeClassifier(__PROJECT_ROOT__ + __CASCADE_FACE_CLASSIFIER_PATH__)
 
     while True:
-        # Request for image to detect face
-        clear_screen()
-        fillBorder(__SUB_BORDER__)
-        fillMenu(0, "Go Back")
-        fillMenu(1, "Detect Face in Image")
-        fillMenu(2, "Detect Face in Camera")
-        fillBorder(__FILLER__)
-        menu_option = input(__INPUT_STR__)
+        menu_option = camera_or_image()
 
         if menu_option == __OPTION_ONE__:
             launchFaceImageClassifier(cascade_face)
@@ -220,17 +286,194 @@ def launchViolaJonesClassifier():
             print("\n\nAn incorrect option has been made! Try again...")
 
 
+def open_cv_window_wait(images=None, title='', saveFile=False, saveFilePath=""):
+    for img_id in range(len(images)):
+        current_image = images[img_id]
+
+        cv2.imshow(title + __IMAGE_PERSON_FILE__ +
+                   str(img_id + 1) + __IMAGE_PERSON_FILE_TAG__, current_image)
+
+        if saveFile:
+            cv2.imwrite(saveFilePath + __IMAGE_PERSON_FILE__ + str(img_id+1) + __IMAGE_PERSON_FILE_TAG__, current_image)
+
+        cv_wait()
+
+
+def launchFaceImageHOG():
+    images = getImages()
+
+    if images is not None:
+        current_images = []
+        for img_id in range(len(images)):
+            current_image = images[img_id]
+
+            # Convert image to readable matrix to calculate the gradient
+            # using Sobel Edge Detection
+            img = np.float32(current_image)/255.0
+
+            # Chose a K size of 3 to be able to get the best gradient from any image
+            gradX = cv2.Sobel(img, cv2.CV_32F, 1, 0, ksize=3)
+            gradY = cv2.Sobel(img, cv2.CV_32F, 0, 1, ksize=3)
+
+            magnitude, angle = cv2.cartToPolar(gradX, gradY, angleInDegrees=True)
+
+            current_images.append(magnitude)
+
+        open_cv_window_wait(current_images, "Gradients of - ", saveFile=True,
+                            saveFilePath=__GRADIENT_RESULTS_PATH__)
+        current_images = []
+
+        fillBorder(__FILLER__)
+        fillBorder(__FILLER__)
+        fillMsg("Those gradients will now be used to calculate the histogram of the images, " +
+                  "and unilaterally provide face detection using the DLib library.")
+
+        fillBorder(__FILLER__)
+        time.sleep(3)
+
+        # Conduct Face Detection using the above gradient method and DLib Library
+        dlib_face_detection = dlib.get_frontal_face_detector()
+
+        for img_id in range(len(images)):
+            current_image = images[img_id]
+
+            detected_faces = dlib_face_detection(current_image, 1)
+
+            for (i, rect) in enumerate(detected_faces):
+                (x, y, w, h) = face_utils.rect_to_bb(rect)
+                cv2.rectangle(current_image, (x,y), (x + w, y + h), __GREEN_BORDER__, __BORDER_THICKNESS__)
+
+            current_images.append(current_image)
+
+        open_cv_window_wait(current_images, "Histogram of Oriented Gradients + Face Detection - ",
+                            saveFile=True, saveFilePath=__HOG_RESULTS_PATH__)
+
+        fillBorder(__FILLER__)
+        fillBorder(__FILLER__)
+
+
+def launchFaceLiveHOG():
+    live_camera_feed = cv2.VideoCapture(0)
+    dlib_face_detection = dlib.get_frontal_face_detector()
+
+    while True:
+        ret, frame = live_camera_feed.read()
+        live_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+
+        detected_faces = dlib_face_detection(live_frame)
+
+        for (i, rect) in enumerate(detected_faces):
+            (x, y, w, h) = face_utils.rect_to_bb(rect)
+            cv2.rectangle(frame, (x, y), (x + w, y + h), __GREEN_BORDER__, __BORDER_THICKNESS__)
+
+        cv2.imshow("Live Feed", frame)
+
+        if cv_wait(isLive=True):
+            break;
+
+    # After the loop release the cap object
+    live_camera_feed.release()
+    # Destroy all the windows
+    cv2.destroyAllWindows()
+
+
+def launchHistogramOrientedGradients():
+    while True:
+        menu_option = camera_or_image()
+
+        if menu_option == __OPTION_ONE__:
+            launchFaceImageHOG()
+        elif menu_option == __OPTION_TWO__:
+            launchFaceLiveHOG()
+        elif menu_option == __OPTION_RETURN__:
+            break
+        else:
+            print("\n\nAn incorrect option has been made! Try again...")
+
+
+def launchFaceImageCNN():
+    images = getImages()
+
+    if images is not None:
+        current_images = []
+
+        dlib_face_detection = dlib.cnn_face_detection_model_v1(__MODELS_FACE_DLIB_PATH__)
+        for img_id in range(len(images)):
+            current_image = images[img_id]
+
+            detected_faces = dlib_face_detection(current_image)
+
+            for (i, rect) in enumerate(detected_faces):
+                x1_left = rect.rect.left()
+                y1_top = rect.rect.top()
+                x2_right = rect.rect.right()
+                y2_bottom = rect.rect.bottom()
+
+                # Draw rectangle around the found face
+                cv2.rectangle(current_image, (x1_left, y1_top), (x2_right, y2_bottom), __GREEN_BORDER__, __BORDER_THICKNESS__)
+
+            current_images.append(current_image)
+
+        open_cv_window_wait(current_images, "Convolutional Neural Networks + Face Detection - ",
+                            saveFile=True, saveFilePath=__CNN_RESULTS_PATH__)
+
+
+def launchFaceLiveCNN():
+    live_camera_feed = cv2.VideoCapture(0)
+    dlib_face_detection = dlib.cnn_face_detection_model_v1(__MODELS_FACE_DLIB_PATH__)
+
+    while True:
+        ret, frame = live_camera_feed.read()
+        live_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+
+        detected_faces = dlib_face_detection(live_frame)
+
+        for (i, rect) in enumerate(detected_faces):
+            x1_left = rect.rect.left()
+            y1_top = rect.rect.top()
+            x2_right = rect.rect.right()
+            y2_bottom = rect.rect.bottom()
+
+            # Draw rectangle around the found face
+            cv2.rectangle(frame, (x1_left, y1_top), (x2_right, y2_bottom), __GREEN_BORDER__,
+                          __BORDER_THICKNESS__)
+
+        cv2.imshow("Live Feed", frame)
+
+        if cv_wait(isLive=True):
+            break;
+
+    # After the loop release the cap object
+    live_camera_feed.release()
+    # Destroy all the windows
+    cv2.destroyAllWindows()
+
+
+def launchConvolutionalNeuralNetwork():
+    while True:
+        menu_option = camera_or_image()
+
+        if menu_option == __OPTION_ONE__:
+            launchFaceImageCNN()
+        elif menu_option == __OPTION_TWO__:
+            launchFaceLiveCNN()
+        elif menu_option == __OPTION_RETURN__:
+            break
+        else:
+            print("\n\nAn incorrect option has been made! Try again...")
+
+
 def start():
     while True:
         clear_screen()
         fillBorder(__HEADER_BORDER__)
-        fillIntro(__INTRO_TITLE__, is_title=True)
+        fillMsg(__INTRO_TITLE__, is_title=True)
         fillBorder(__HEADER_BORDER__)
-        fillIntro(__INTRO_MSG__)
+        fillMsg(__INTRO_MSG__)
         fillBorder(__SUB_BORDER__)
         fillBorder(__FILLER__)
         fillMenu(0, "Exit")
-        fillMenu(1, "Viola–Jones Object Detection")
+        fillMenu(1, "Viola–Jones Algorithm")
         fillMenu(2, "Histogram of the Oriented Gradients")
         fillMenu(3, "Convolutional Neural Networks (CNN)")
         fillBorder(__FILLER__)
@@ -239,11 +482,10 @@ def start():
 
         if menu_option == __OPTION_ONE__:
             launchViolaJonesClassifier()
-            pass
         elif menu_option == __OPTION_TWO__:
-            pass
+            launchHistogramOrientedGradients()
         elif menu_option == __OPTION_THREE__:
-            pass
+            launchConvolutionalNeuralNetwork()
         elif menu_option == __OPTION_RETURN__:
             break
         else:
@@ -252,4 +494,8 @@ def start():
 
 if __name__ == '__main__':
     # Launch Options Menu
+    global __PROJECT_ROOT__
+
+    __PROJECT_ROOT__ = sys.argv[1] + "/"
+
     start()
