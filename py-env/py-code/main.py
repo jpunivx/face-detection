@@ -40,7 +40,7 @@ __CLEAR_SCREEN_COUNT__ = 20
 __DEFAULT_IMAGE_NUM__ = 4
 __IMAGE_ROOT_PATH__ = str(__CURRENT_FILE_PATH__) + "/images/"
 __IMAGE_RESULTS_PATH__ = __IMAGE_ROOT_PATH__ + "result-images/"
-__IMAGE_PERSON_PATH__ = __IMAGE_ROOT_PATH__ + "golden-image/"
+__IMAGE_GOLDEN_PATH__ = __IMAGE_ROOT_PATH__ + "golden-image/"
 __IMAGE_PERSON_FILE__ = "person"
 __IMAGE_PERSON_FILE_TAG__ = ".jpg"
 __GREEN_BORDER__ = (0, 255, 0)
@@ -64,22 +64,29 @@ __CNN_RESULTS_PATH__ = __IMAGE_RESULTS_PATH__ + "convolutional-neural-network/"
 
 
 class SavedImage:
-    def __init__(self, image_path="", gray=False):
-        image_type = image_path.split('.')[len(image_path) - 1]
-        file_name = image_path.split('.')[len(image_path) - 2]
+    def __init__(self, image_path="", gray=False, image=None):
+        file_name = image_path.split('/')[-1]
+        image_name = file_name.split('.')[0]
+        image_type = file_name.split('.')[1]
 
         if image_type == 'jpg':
-            if gray:
-                image = cv2.imread(image_path, 0)
+            if image is None:
+                if gray:
+                    read_image = cv2.imread(image_path, 0)
+                else:
+                    read_image = cv2.imread(image_path)
             else:
-                image = cv2.imread(image_path)
+                read_image = image
 
             self.image_path = image_path
-            self.image_name = file_name
+            self.image_name = image_name
             self.image_tag = image_type
-            self.image = image
+            self.image = read_image
         else:
             raise Exception("Unable to load image - " + image_path)
+
+    def get_file_with_tag(self):
+        return self.image_name + "." + self.image_tag
 
 
 def clear_screen():
@@ -159,72 +166,71 @@ def fillMenu(option=0, msg=""):
 
 
 def getImages(gray=False):
-    while True:
-        images = []
+    try:
+        while True:
+            images = []
 
-        fillBorder(__FILLER__)
-        fillBorder(__SUB_BORDER__)
-        fillBorder(__FILLER__)
-        fillMenu(0, "Go Back")
-        fillMenu(1, "Use Default Images for Detection")
-        fillMenu(2, "Provide Path to Image for Detection")
-        fillBorder(__FILLER__)
-        menu_option = input(__INPUT_STR__)
+            fillBorder(__FILLER__)
+            fillBorder(__SUB_BORDER__)
+            fillBorder(__FILLER__)
+            fillMenu(0, "Go Back")
+            fillMenu(1, "Use Default Images for Detection")
+            fillMenu(2, "Provide Path to Image for Detection")
+            fillBorder(__FILLER__)
+            menu_option = input(__INPUT_STR__)
 
-        if menu_option == __OPTION_ONE__:
-            image_files =
-            for img_num in range(1, __DEFAULT_IMAGE_NUM__+1):
-                current_image_path = __IMAGE_PERSON_PATH__ + __IMAGE_PERSON_FILE__ +\
-                                     str(img_num) + __IMAGE_PERSON_FILE_TAG__
+            if menu_option == __OPTION_ONE__:
+                files = os.listdir(__IMAGE_GOLDEN_PATH__)
+                files.sort()
 
-                current_image = SavedImage(current_image_path, gray)
+                for file in files:
 
-                cv2.imshow("Original - " + __IMAGE_PERSON_FILE__ +
-                           str(img_num) + __IMAGE_PERSON_FILE_TAG__, current_image.image)
+                    image = SavedImage(__IMAGE_GOLDEN_PATH__ + file, gray)
+
+                    cv2.imshow("Original - " + image.get_file_with_tag(), image.image)
+
+                    cv_wait()
+
+                    images.append(image)
+
+                return images
+            elif menu_option == __OPTION_TWO__:
+                fillBorder(__FILLER__)
+                fillBorder(__FILLER__)
+
+                path_to_image = input("|  Please provide the path to the image: ")
+
+                image = SavedImage(path_to_image, gray)
+
+                cv2.imshow("Original - " + image.get_file_with_tag(), image.image)
 
                 cv_wait()
 
-                images.append(current_image)
+                images.append(image)
 
-            return images
-        elif menu_option == __OPTION_TWO__:
-            fillBorder(__FILLER__)
-            fillBorder(__FILLER__)
-
-            path_to_image = input("|  Please provide the path to the image: ")
-
-            image = SavedImage(path_to_image, gray)
-
-            cv2.imshow("Original - " + file_name + "." + image_type, image.image)
-
-            cv_wait()
-
-            images.append(image)
-
-            return images
-        elif menu_option == __OPTION_RETURN__:
-            return
-        else:
-            print("\n\nAn incorrect option has been made! Try again...")
+                return images
+            elif menu_option == __OPTION_RETURN__:
+                return
+            else:
+                print("\n\nAn incorrect option has been made! Try again...")
+    except Exception as e:
+        fillMsg("ERROR! Error message is: " + str(e))
 
 
 def launchFaceImageClassifier(classifier=None):
     images = getImages()
     if images is not None:
-        for img_id in range(len(images)):
-            current_image = images[img_id]
-            faces = classifier.detectMultiScale(current_image, scaleFactor=1.1,
+        for image in images:
+            faces = classifier.detectMultiScale(image.image, scaleFactor=1.1,
                                                 minNeighbors=5, flags=cv2.CASCADE_SCALE_IMAGE)
             for (x, y, w, h) in faces:
-                cv2.rectangle(current_image, (x, y), (x + w, y + h), __GREEN_BORDER__, __BORDER_THICKNESS__)
+                cv2.rectangle(image.image, (x, y), (x + w, y + h), __GREEN_BORDER__, __BORDER_THICKNESS__)
 
-            cv2.imshow("Viola and Jones Algorithm + Face Detection - " + __IMAGE_PERSON_FILE__ +
-                       str(img_id+1) + __IMAGE_PERSON_FILE_TAG__, current_image)
+            cv2.imshow("Viola and Jones Algorithm + Face Detection - " + image.get_file_with_tag(), image.image)
 
             cv_wait()
 
-            cv2.imwrite(__VIOLA_JONES_RESULTS_PATH__ + __IMAGE_PERSON_FILE__ +
-                        str(img_id+1) + __IMAGE_PERSON_FILE_TAG__, current_image)
+            cv2.imwrite(__VIOLA_JONES_RESULTS_PATH__ + image.get_file_with_tag(), image.image)
 
 
 def launchFaceLiveClassifier(classifier=None):
@@ -286,15 +292,12 @@ def launchViolaJonesClassifier():
             print("\n\nAn incorrect option has been made! Try again...")
 
 
-def open_cv_window_wait(images=None, title='', saveFile=False, saveFilePath=""):
-    for img_id in range(len(images)):
-        current_image = images[img_id]
-
-        cv2.imshow(title + __IMAGE_PERSON_FILE__ +
-                   str(img_id + 1) + __IMAGE_PERSON_FILE_TAG__, current_image)
+def open_cv_window_wait(images=None, title="", saveFile=False, saveFilePath=""):
+    for image in images:
+        cv2.imshow(title + image.get_file_with_tag(), image.image)
 
         if saveFile:
-            cv2.imwrite(saveFilePath + __IMAGE_PERSON_FILE__ + str(img_id+1) + __IMAGE_PERSON_FILE_TAG__, current_image)
+            cv2.imwrite(saveFilePath + image.get_file_with_tag(), image.image)
 
         cv_wait()
 
@@ -303,13 +306,11 @@ def launchFaceImageHOG():
     images = getImages()
 
     if images is not None:
-        current_images = []
-        for img_id in range(len(images)):
-            current_image = images[img_id]
-
+        image_gradients = []
+        for image in images:
             # Convert image to readable matrix to calculate the gradient
             # using Sobel Edge Detection
-            img = np.float32(current_image)/255.0
+            img = np.float32(image.image)/255.0
 
             # Chose a K size of 3 to be able to get the best gradient from any image
             gradX = cv2.Sobel(img, cv2.CV_32F, 1, 0, ksize=3)
@@ -317,11 +318,10 @@ def launchFaceImageHOG():
 
             magnitude, angle = cv2.cartToPolar(gradX, gradY, angleInDegrees=True)
 
-            current_images.append(magnitude)
+            image_gradients.append(SavedImage("/" + image.get_file_with_tag(), image=magnitude))
 
-        open_cv_window_wait(current_images, "Gradients of - ", saveFile=True,
+        open_cv_window_wait(image_gradients, "Gradients of - ", saveFile=True,
                             saveFilePath=__GRADIENT_RESULTS_PATH__)
-        current_images = []
 
         fillBorder(__FILLER__)
         fillBorder(__FILLER__)
@@ -331,21 +331,17 @@ def launchFaceImageHOG():
         fillBorder(__FILLER__)
         time.sleep(3)
 
-        # Conduct Face Detection using the above gradient method and DLib Library
+        # Conduct Face Detection using the above gradient method and DLib Histogram Library
         dlib_face_detection = dlib.get_frontal_face_detector()
 
-        for img_id in range(len(images)):
-            current_image = images[img_id]
-
-            detected_faces = dlib_face_detection(current_image, 1)
+        for image in images:
+            detected_faces = dlib_face_detection(image.image, 1)
 
             for (i, rect) in enumerate(detected_faces):
                 (x, y, w, h) = face_utils.rect_to_bb(rect)
-                cv2.rectangle(current_image, (x,y), (x + w, y + h), __GREEN_BORDER__, __BORDER_THICKNESS__)
+                cv2.rectangle(image.image, (x,y), (x + w, y + h), __GREEN_BORDER__, __BORDER_THICKNESS__)
 
-            current_images.append(current_image)
-
-        open_cv_window_wait(current_images, "Histogram of Oriented Gradients + Face Detection - ",
+        open_cv_window_wait(images, "Histogram of Oriented Gradients + Face Detection - ",
                             saveFile=True, saveFilePath=__HOG_RESULTS_PATH__)
 
         fillBorder(__FILLER__)
@@ -395,13 +391,10 @@ def launchFaceImageCNN():
     images = getImages()
 
     if images is not None:
-        current_images = []
-
         dlib_face_detection = dlib.cnn_face_detection_model_v1(__MODELS_FACE_DLIB_PATH__)
-        for img_id in range(len(images)):
-            current_image = images[img_id]
 
-            detected_faces = dlib_face_detection(current_image)
+        for image in images:
+            detected_faces = dlib_face_detection(image.image)
 
             for (i, rect) in enumerate(detected_faces):
                 x1_left = rect.rect.left()
@@ -410,11 +403,9 @@ def launchFaceImageCNN():
                 y2_bottom = rect.rect.bottom()
 
                 # Draw rectangle around the found face
-                cv2.rectangle(current_image, (x1_left, y1_top), (x2_right, y2_bottom), __GREEN_BORDER__, __BORDER_THICKNESS__)
+                cv2.rectangle(image.image, (x1_left, y1_top), (x2_right, y2_bottom), __GREEN_BORDER__, __BORDER_THICKNESS__)
 
-            current_images.append(current_image)
-
-        open_cv_window_wait(current_images, "Convolutional Neural Networks + Face Detection - ",
+        open_cv_window_wait(images, "Convolutional Neural Networks + Face Detection - ",
                             saveFile=True, saveFilePath=__CNN_RESULTS_PATH__)
 
 
