@@ -320,8 +320,7 @@ def launchFaceImageHOG():
 
             image_gradients.append(SavedImage("/" + image.get_file_with_tag(), image=magnitude))
 
-        open_cv_window_wait(image_gradients, "Gradients of - ", saveFile=True,
-                            saveFilePath=__GRADIENT_RESULTS_PATH__)
+        open_cv_window_wait(image_gradients, "Gradients of - ", saveFile=False)
 
         fillBorder(__FILLER__)
         fillBorder(__FILLER__)
