@@ -37,12 +37,9 @@ __MAX_TITLE_SIZE__ = __MAX_BORDER_SIZE__-2
 __CLEAR_SCREEN_COUNT__ = 20
 
 # Image
-__DEFAULT_IMAGE_NUM__ = 4
 __IMAGE_ROOT_PATH__ = str(__CURRENT_FILE_PATH__) + "/images/"
 __IMAGE_RESULTS_PATH__ = __IMAGE_ROOT_PATH__ + "result-images/"
 __IMAGE_GOLDEN_PATH__ = __IMAGE_ROOT_PATH__ + "golden-image/"
-__IMAGE_PERSON_FILE__ = "person"
-__IMAGE_PERSON_FILE_TAG__ = ".jpg"
 __GREEN_BORDER__ = (0, 255, 0)
 __BORDER_THICKNESS__ = 10
 
