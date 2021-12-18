@@ -1,9 +1,15 @@
 #!/bin/bash
 
-source ./py-env/bin/activate
+python3 -m venv ./py-env
+
+cd ./py-env
+
+source ./bin/activate
+
+pip install -r requirements.txt
 
 current_directory=$(pwd)
 
-python ./py-env/py-code/main.py $current_directory
+python3 ./py-code/main.py $current_directory
 
 deactivate
