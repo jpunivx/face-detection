@@ -5,4 +5,4 @@
 **/include
 **/lib
 **/pyenv.cfg
-**/share
+py-env/share
