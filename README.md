@@ -1,11 +1,17 @@
 # Face Detection
-This facial detection program uses the Viola and Jones Object Detection using OpenCV, Histogram of Oriented Gradients (HOG) using the DLib library, and a Convolutional Neural Network (CNN) using the DLib library. 
+This facial detection program uses the Viola and Jones Object Detection using OpenCV, Histogram of Oriented Gradients (HOG) using the DLib library, and a Convolutional Neural Network (CNN) using the DLib library. The following are the default **Golden Images** that will be used in the program.  
+
+   <img src="https://github.com/jpunivx/face-detection/blob/main/py-env/py-code/images/golden_images.jpg" alt="Golden Images" width="800"/>
+
+Any image found in the [Golden Images](https://github.com/jpunivx/face-detection/tree/main/py-env/py-code/images/golden-image) directory will be used as a default Golden Image. 
+
+Results can be found [here](https://github.com/jpunivx/face-detection/tree/main/py-env/py-code/images/result-images)
 
 ## Program Cycle
 1. The program provides options to chose one of the three Algorithm
 2. The program requests the user to chose to use images or a live camera feed
-    * If images are selected, program requests the user to select 
-      * Use the default [Golden Images](https://github.com/jpunivx/face-detection/tree/main/py-env/py-code/images/golden-image)
+    * If images are selected, program requests the user to select one of these options. **Images MUST be in jpg format!**
+      * Use the default Golden Images
       * Use an image provided by the user
 
 ## Pre-Requisites 
