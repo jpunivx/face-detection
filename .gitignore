@@ -4,5 +4,5 @@
 **/bin
 **/include
 **/lib
-**/pyenv.cfg
+py-env/pyvenv.cfg
 py-env/share
