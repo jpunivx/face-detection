@@ -46,6 +46,7 @@ Run the following in the terminal to launch the program:
 
 ## While Running the Program
 The following are some points to remember when running the program
+* Please be patient with the program. The HOG algorithm takes longer then the Viola and Jones algorithm, and the CNN algorithm takes the longest.
 * To cycle through an image, press 'Q' on the keyboard
 * To close a live feed of the camera, press 'Q' on the keyboard
 * Please have the terminal visible, even when an image or live feed is being displayed. The terminal may provide useful information as the program runs.
